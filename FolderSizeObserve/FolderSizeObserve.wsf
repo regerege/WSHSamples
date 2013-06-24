@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" standalone="yes" ?>
+<package>
+    <job id="defualt">
+        <?job debug="true"?>
+        <script language="JScript" src="FolderSizeObserve.js" />
+    </job>
+</package>
