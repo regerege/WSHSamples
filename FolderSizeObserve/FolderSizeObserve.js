@@ -1,13 +1,22 @@
-﻿var fso = new ActiveXObject("Scripting.FileSystemObject");
+﻿Array.prototype.map = function (f) {
+    for (var i = 0; i < this.length; i++) {
+        f(this[i]);
+    }
+}
 
-var SearchOption = new Object();
+var fso = new ActiveXObject("Scripting.FileSystemObject");
+
+var SearchOption = new (function SearchOption() {})();
+SearchOption.constructor.name = "SearchOption";
 SearchOption.constructor.prototype.TopDirectoryOnly = 0;
 SearchOption.constructor.prototype.AllDirectories = 1;
 
+var File = new (function File() { })();
+File.constructor.name = "File";
+//Directory.constructor.prototype.
 
-var Directory = new Object();
-//Directory.constructor._Init = function () { Directory.constructor._fso = new ActiveXObject("Scripting.FileSystemObject"); }
-//Directory.constructor._Dispose = function () { this._fso = undefined; }
+var Directory = new (function Directory() { })();
+Directory.constructor.name = "Directory";
 
 /// <param name="path">検索するディレクトリ</param>
 /// <param name="searchPattern">
@@ -26,7 +35,8 @@ Directory.constructor.prototype.GetFiles = function () {
     switch (arguments.length) {
         case 3:
             var item = arguments[2];
-            if (!(item instanceof SearchOption)) { return; }
+            if (typeof item != "number") { return; }
+//            if (!(item && item.constructor.name == "SearchOption")) { return; }
             searchOption = item;
         case 2:
             var item = arguments[1];
@@ -40,42 +50,45 @@ Directory.constructor.prototype.GetFiles = function () {
         default:
             return;
     }
-    var _getFiles = function(p) {
+    var checkPattern = function (filename) {
+        if (searchPattern) return true;
+        if (searchPattern == "") return true;
+        if (searchPattern == "*") return true;
+        return (0 <= filename.indexOf(searchPattern));
+    };
+    var _getFiles = function (p) {
         var files = [];
         var f = fso.GetFolder(p);
+        // ファイル
         var e = new Enumerator(f.files);
         for (; !e.atEnd(); e.moveNext()) {
             var file = e.item();
-            if (0 <= file.indexOf(searchPattern) || searchPattern == "*") {
-                files.push(file);
+            if (checkPattern(file.Name)) {
+                files.push(file.Path);
             }
         }
+        // フォルダ
         var e = new Enumerator(f.SubFolders);
         for (; !e.atEnd(); e.moveNext()) {
             var file = e.item();
-            if (0 <= file.indexOf(searchPattern)) {
-                files.push(file);
-            }
-            // 再帰
             if (searchOption == SearchOption.AllDirectories) {
-                var a = _getFiles(p);
+                // 再帰
+                var a = _getFiles(file.Path);
                 if (a && a instanceof Array && 0 < a.length) {
-                    files.concat(a);
+                    files = files.concat(a);
                 }
             }
         }
         return files;
     }
-    return _getFiles(p);
+    return _getFiles(path);
 };
 
-//if (!fso) {
-//    var fso = new ActiveXObject("Scripting.FileSystemObject");
-//}
-var files = Directory.GetFiles("D:\\develop\\github");
-var a = fso.CreateTextFile("D:\\testfile.txt", true);
-a.WriteLine("ファイルリスト");
-for(var file in files) {
-    a.WriteLine(file);
+function test001() {
+    debugger;
+    var files = Directory.GetFiles("D:\\develop\\github\\WSHSamples", "", SearchOption.AllDirectories);
+//    WScript.Echo(files);
+    files.map(function(file) {
+        WScript.Echo(file);
+    });
 }
-a.Close();
